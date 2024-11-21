@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { useCountries } from './useCountries';
 import { Country } from '../data/countries';
+import { debounce } from 'lodash';
 
 export const useCountrySelector = () => {
   const [inputValue, setInputValue] = useState('');
@@ -19,42 +20,63 @@ export const useCountrySelector = () => {
     });
   }, [countries]);
 
+  const updateSuggestions = useCallback(
+    (value: string) => {
+      if (value && fuse) {
+        const results = fuse.search(value);
+        setSuggestions(results.map((result) => result.item));
+        setShowSuggestions(true);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+      setActiveIndex(-1);
+    },
+    [fuse]
+  );
+
+  const debouncedUpdateSuggestions = useMemo(
+    () => debounce(updateSuggestions, 300),
+    [updateSuggestions]
+  );
+
   useEffect(() => {
     const savedCountry = localStorage.getItem('selectedCountry');
     if (savedCountry) {
       setInputValue(savedCountry);
+      updateSuggestions(savedCountry);
     }
-  }, []);
+  }, [updateSuggestions]);
 
   useEffect(() => {
-    if (inputValue && fuse) {
-      const results = fuse.search(inputValue);
-      setSuggestions(results.map((result) => result.item));
-    } else {
-      setSuggestions([]);
-    }
-    setActiveIndex(-1);
-  }, [inputValue, fuse]);
+    debouncedUpdateSuggestions(inputValue);
+    return () => {
+      debouncedUpdateSuggestions.cancel();
+    };
+  }, [inputValue, debouncedUpdateSuggestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
-    setShowSuggestions(true);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex((prevIndex) =>
-        prevIndex < suggestions.length - 1 ? prevIndex + 1 : prevIndex
+        prevIndex < suggestions.length - 1 ? prevIndex + 1 : 0
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((prevIndex) => (prevIndex > 0 ? prevIndex - 1 : -1));
+      setActiveIndex((prevIndex) =>
+        prevIndex > 0 ? prevIndex - 1 : suggestions.length - 1
+      );
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (activeIndex >= 0 && activeIndex < suggestions.length) {
         selectCountry(suggestions[activeIndex]);
       }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
     }
   };
 
