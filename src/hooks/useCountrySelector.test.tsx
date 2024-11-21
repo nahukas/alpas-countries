@@ -7,17 +7,11 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 vi.mock('../api/countriesApi', () => ({
   fetchCountries: vi.fn().mockResolvedValue([
     { name: 'Argentina', code: 'AR' },
+    { name: 'France', code: 'FR' },
     { name: 'United States', code: 'US' },
-    { name: 'United Kingdom', code: 'GB' },
-    { name: 'France', code: 'FR' }
+    { name: 'United Kingdom', code: 'GB' }
   ])
 }));
-
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <QueryClientProvider client={new QueryClient()}>
-    {children}
-  </QueryClientProvider>
-);
 
 const localStorageMock = {
   getItem: vi.fn(),
@@ -26,6 +20,12 @@ const localStorageMock = {
 };
 
 vi.stubGlobal('localStorage', localStorageMock);
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={new QueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
 
 describe('useCountrySelector', () => {
   beforeEach(() => {
@@ -63,6 +63,32 @@ describe('useCountrySelector', () => {
           country.name.toLowerCase().includes('united')
         )
       ).toBe(true);
+      expect(result.current.showSuggestions).toBe(true);
+    });
+  });
+
+  it('should hide suggestions when input is cleared', async () => {
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.handleInputChange({
+        target: { value: 'united' }
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    await waitFor(() => {
+      expect(result.current.showSuggestions).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleInputChange({
+        target: { value: '' }
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    await waitFor(() => {
+      expect(result.current.showSuggestions).toBe(false);
     });
   });
 
@@ -79,6 +105,7 @@ describe('useCountrySelector', () => {
       'selectedCountry',
       'France'
     );
+    expect(result.current.showSuggestions).toBe(false);
   });
 
   it('should handle arrow key navigation', async () => {
@@ -90,6 +117,28 @@ describe('useCountrySelector', () => {
         target: { value: 'united' }
       } as React.ChangeEvent<HTMLInputElement>);
     });
+
+    await waitFor(() => {
+      expect(result.current.suggestions.length).toBe(2);
+    });
+
+    act(() => {
+      result.current.handleKeyDown({
+        key: 'ArrowDown',
+        preventDefault: vi.fn()
+      } as unknown as React.KeyboardEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.activeIndex).toBe(0);
+
+    act(() => {
+      result.current.handleKeyDown({
+        key: 'ArrowDown',
+        preventDefault: vi.fn()
+      } as unknown as React.KeyboardEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.activeIndex).toBe(1);
 
     act(() => {
       result.current.handleKeyDown({
@@ -107,7 +156,7 @@ describe('useCountrySelector', () => {
       } as unknown as React.KeyboardEvent<HTMLInputElement>);
     });
 
-    expect(result.current.activeIndex).toBe(-1);
+    expect(result.current.activeIndex).toBe(1);
   });
 
   it('should select country on Enter key press', async () => {
@@ -118,6 +167,10 @@ describe('useCountrySelector', () => {
       result.current.handleInputChange({
         target: { value: 'united' }
       } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    await waitFor(() => {
+      expect(result.current.suggestions.length).toBe(2);
     });
 
     act(() => {
@@ -139,5 +192,30 @@ describe('useCountrySelector', () => {
       'selectedCountry',
       'United States'
     );
+    expect(result.current.showSuggestions).toBe(false);
+  });
+
+  it('should close suggestions on Escape key press', async () => {
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.handleInputChange({
+        target: { value: 'united' }
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    await waitFor(() => {
+      expect(result.current.showSuggestions).toBe(true);
+    });
+
+    act(() => {
+      result.current.handleKeyDown({
+        key: 'Escape',
+        preventDefault: vi.fn()
+      } as unknown as React.KeyboardEvent<HTMLInputElement>);
+    });
+
+    expect(result.current.showSuggestions).toBe(false);
   });
 });

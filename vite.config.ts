@@ -11,5 +11,8 @@ export default defineConfig({
     setupFiles: ['./src/setupTests.ts'],
     exclude: [...configDefaults.exclude, 'e2e/*'],
     css: true
+  },
+  server: {
+    open: true
   }
 });
