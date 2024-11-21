@@ -1,5 +1,5 @@
 import './App.css';
-import CountrySelector from './components/countrySelector/CountrySelector';
+import CountrySelector from './components/CountrySelector/CountrySelector';
 
 function App() {
   return <CountrySelector />;
