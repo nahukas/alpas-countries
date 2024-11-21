@@ -4,7 +4,7 @@ const $SuggestionList = styled.ul`
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
+  width: 100%;
   color: black;
   max-height: 200px;
   overflow-y: auto;
@@ -14,7 +14,7 @@ const $SuggestionList = styled.ul`
   border: 1px solid #ccc;
   border-top: none;
   border-radius: 0 0 4px 4px;
-  background-color: gray;
+  background-color: white;
   z-index: 1;
 `;
 

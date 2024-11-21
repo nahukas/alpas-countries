@@ -5,6 +5,7 @@ import { $Input } from '../Input/Input';
 import $SuggestionList from '../SuggestionList/SuggestionList';
 import $SuggestionItem from '../SuggestionItem/SuggestionItem';
 import { useCountrySelector } from '../../hooks/useCountrySelector';
+import { $InputWrapper } from '../InputWrapper/InputWrapper';
 
 const CountrySelector: FC = () => {
   const {
@@ -35,30 +36,32 @@ const CountrySelector: FC = () => {
 
   return (
     <$Container>
-      <$Input
-        ref={inputRef}
-        type='text'
-        value={inputValue}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setShowSuggestions(true)}
-        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-        placeholder='Select a country'
-      />
-      {showSuggestions && suggestions.length > 0 && (
-        <$SuggestionList ref={listRef}>
-          {suggestions.map((country, index) => (
-            <$SuggestionItem
-              key={country.code}
-              isActive={index === activeIndex}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => selectCountry(country)}
-            >
-              {highlightMatch(country.name, inputValue)}
-            </$SuggestionItem>
-          ))}
-        </$SuggestionList>
-      )}
+      <$InputWrapper>
+        <$Input
+          ref={inputRef}
+          type='text'
+          value={inputValue}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          placeholder='Select a country'
+        />
+        {showSuggestions && suggestions.length > 0 && (
+          <$SuggestionList ref={listRef}>
+            {suggestions.map((country, index) => (
+              <$SuggestionItem
+                key={country.code}
+                isActive={index === activeIndex}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectCountry(country)}
+              >
+                {highlightMatch(country.name, inputValue)}
+              </$SuggestionItem>
+            ))}
+          </$SuggestionList>
+        )}
+      </$InputWrapper>
     </$Container>
   );
 };
