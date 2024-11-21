@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { countries, Country } from '../data/countries';
+import { useCountries } from './useCountries';
+import { Country } from '../data/countries';
 
 export const useCountrySelector = () => {
   const [inputValue, setInputValue] = useState('');
@@ -8,14 +9,15 @@ export const useCountrySelector = () => {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(countries, {
-        keys: ['name'],
-        threshold: 0.3
-      }),
-    []
-  );
+  const { data: countries, isLoading, error } = useCountries();
+
+  const fuse = useMemo(() => {
+    if (!countries) return null;
+    return new Fuse(countries, {
+      keys: ['name'],
+      threshold: 0.3
+    });
+  }, [countries]);
 
   useEffect(() => {
     const savedCountry = localStorage.getItem('selectedCountry');
@@ -25,7 +27,7 @@ export const useCountrySelector = () => {
   }, []);
 
   useEffect(() => {
-    if (inputValue) {
+    if (inputValue && fuse) {
       const results = fuse.search(inputValue);
       setSuggestions(results.map((result) => result.item));
     } else {
@@ -72,6 +74,8 @@ export const useCountrySelector = () => {
     handleInputChange,
     handleKeyDown,
     selectCountry,
-    setActiveIndex
+    setActiveIndex,
+    isLoading,
+    error
   };
 };

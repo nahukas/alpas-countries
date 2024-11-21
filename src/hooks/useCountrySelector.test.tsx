@@ -1,6 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useCountrySelector } from './useCountrySelector';
+import { QueryClient, QueryClientProvider } from 'react-query';
+
+// Mock the API
+vi.mock('../api/countriesApi', () => ({
+  fetchCountries: vi.fn().mockResolvedValue([
+    { name: 'Argentina', code: 'AR' },
+    { name: 'United States', code: 'US' },
+    { name: 'United Kingdom', code: 'GB' },
+    { name: 'France', code: 'FR' }
+  ])
+}));
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={new QueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
 
 const localStorageMock = {
   getItem: vi.fn(),
@@ -17,61 +34,64 @@ describe('useCountrySelector', () => {
   });
 
   it('should initialize with empty input', async () => {
-    const { result } = renderHook(() => useCountrySelector());
-    await act(async () => {
-      expect(result.current.inputValue).toBe('');
-    });
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.inputValue).toBe('');
   });
 
   it('should load saved country from localStorage', async () => {
-    localStorageMock.getItem.mockReturnValue('Argentina');
-    const { result } = renderHook(() => useCountrySelector());
-    await act(async () => {
-      expect(result.current.inputValue).toBe('Argentina');
-    });
+    localStorageMock.getItem.mockReturnValue('France');
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.inputValue).toBe('France');
   });
 
   it('should update suggestions when input changes', async () => {
-    const { result } = renderHook(() => useCountrySelector());
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => {
+    act(() => {
       result.current.handleInputChange({
         target: { value: 'united' }
       } as React.ChangeEvent<HTMLInputElement>);
     });
 
-    expect(result.current.suggestions.length).toBeGreaterThan(0);
-    expect(
-      result.current.suggestions.some((country) =>
-        country.name.toLowerCase().includes('united')
-      )
-    ).toBe(true);
+    await waitFor(() => {
+      expect(result.current.suggestions.length).toBe(2);
+      expect(
+        result.current.suggestions.some((country) =>
+          country.name.toLowerCase().includes('united')
+        )
+      ).toBe(true);
+    });
   });
 
   it('should select a country and save to localStorage', async () => {
-    const { result } = renderHook(() => useCountrySelector());
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => {
-      result.current.selectCountry({ name: 'Germany', code: 'DE' });
+    act(() => {
+      result.current.selectCountry({ name: 'France', code: 'FR' });
     });
 
-    expect(result.current.inputValue).toBe('Germany');
+    expect(result.current.inputValue).toBe('France');
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'selectedCountry',
-      'Germany'
+      'France'
     );
   });
 
   it('should handle arrow key navigation', async () => {
-    const { result } = renderHook(() => useCountrySelector());
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => {
+    act(() => {
       result.current.handleInputChange({
-        target: { value: 'a' }
+        target: { value: 'united' }
       } as React.ChangeEvent<HTMLInputElement>);
     });
 
-    await act(async () => {
+    act(() => {
       result.current.handleKeyDown({
         key: 'ArrowDown',
         preventDefault: vi.fn()
@@ -80,7 +100,7 @@ describe('useCountrySelector', () => {
 
     expect(result.current.activeIndex).toBe(0);
 
-    await act(async () => {
+    act(() => {
       result.current.handleKeyDown({
         key: 'ArrowUp',
         preventDefault: vi.fn()
@@ -91,29 +111,33 @@ describe('useCountrySelector', () => {
   });
 
   it('should select country on Enter key press', async () => {
-    const { result } = renderHook(() => useCountrySelector());
+    const { result } = renderHook(() => useCountrySelector(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => {
+    act(() => {
       result.current.handleInputChange({
         target: { value: 'united' }
       } as React.ChangeEvent<HTMLInputElement>);
     });
 
-    await act(async () => {
+    act(() => {
       result.current.handleKeyDown({
         key: 'ArrowDown',
         preventDefault: vi.fn()
       } as unknown as React.KeyboardEvent<HTMLInputElement>);
     });
 
-    await act(async () => {
+    act(() => {
       result.current.handleKeyDown({
         key: 'Enter',
         preventDefault: vi.fn()
       } as unknown as React.KeyboardEvent<HTMLInputElement>);
     });
 
-    expect(result.current.inputValue).toMatch(/united/i);
-    expect(localStorageMock.setItem).toHaveBeenCalled();
+    expect(result.current.inputValue).toBe('United States');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      'selectedCountry',
+      'United States'
+    );
   });
 });

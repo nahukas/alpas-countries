@@ -17,7 +17,9 @@ const CountrySelector: FC = () => {
     handleInputChange,
     handleKeyDown,
     selectCountry,
-    setActiveIndex
+    setActiveIndex,
+    isLoading,
+    error
   } = useCountrySelector();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +35,9 @@ const CountrySelector: FC = () => {
       }
     }
   }, [activeIndex]);
+
+  if (isLoading) return <div>Loading countries...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <$Container>
