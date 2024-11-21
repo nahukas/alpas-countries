@@ -1,11 +1,8 @@
 import './App.css';
+import CountrySelector from './components/countrySelector/CountrySelector';
 
 function App() {
-  return (
-    <>
-      <div>Hello World!</div>
-    </>
-  );
+  return <CountrySelector />;
 }
 
 export default App;
